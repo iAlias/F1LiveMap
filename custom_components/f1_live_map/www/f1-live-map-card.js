@@ -16,6 +16,9 @@ const TESTI = {
     entity: "Entità",
     altezza: "Altezza",
     mostra_sempre: "Mostra sempre, anche fuori sessione",
+    nascondi_cookie: "Nascondi il banner dei cookie",
+    schermo_intero: "Schermo intero",
+    esci: "Esci da schermo intero",
   },
   en: {
     prossima: "Next session",
@@ -29,14 +32,44 @@ const TESTI = {
     entity: "Entity",
     altezza: "Height",
     mostra_sempre: "Always show, even outside sessions",
+    nascondi_cookie: "Hide the cookie banner",
+    schermo_intero: "Full screen",
+    esci: "Exit full screen",
   },
 };
 
 const STILE = `
   :host { display: block; }
+  :host(.pieno) { position: fixed; inset: 0; z-index: 9999; }
+  :host(:fullscreen), :host(.pieno) { background: var(--card-background-color, #111); }
   ha-card { overflow: hidden; }
-  iframe { display: block; width: 100%; border: 0; }
-  .piede { padding: 6px 16px; text-align: right; font-size: 12px; }
+  :host(:fullscreen) ha-card, :host(.pieno) ha-card {
+    display: flex; flex-direction: column; height: 100%; border-radius: 0;
+  }
+  .cornice {
+    position: relative; overflow: hidden; height: var(--altezza);
+    container-type: inline-size;
+  }
+  :host(:fullscreen) .cornice, :host(.pieno) .cornice { flex: 1; height: auto; }
+  iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+  /* ponytail: il CSS non può entrare in un iframe di un altro sito. Il banner cookie di
+     f1dash è ancorato al fondo della sua finestra, quindi allungo l'iframe oltre la cornice
+     e lo taglio via. Misure prese l'11/10/2026 (200 px da 480 in su, fino a 298 sotto):
+     se f1dash cambia il banner vanno riprese. */
+  .taglia iframe { height: calc(100% + 210px); }
+  @container (max-width: 479px) {
+    .taglia iframe { height: calc(100% + 300px); }
+  }
+  .piede {
+    display: flex; justify-content: flex-end; gap: 16px;
+    padding: 6px 16px; font-size: 12px;
+  }
+  .piede button {
+    margin: 0; padding: 0; border: 0; border-radius: 0;
+    font-size: inherit; text-decoration: underline;
+  }
+  .esci, :host(:fullscreen) .entra, :host(.pieno) .entra { display: none; }
+  :host(:fullscreen) .esci, :host(.pieno) .esci { display: inline; }
   a { color: var(--primary-color); }
   .corpo { display: flex; flex-direction: column; gap: 4px; padding: 16px; }
   .etichetta {
@@ -99,6 +132,7 @@ class F1Card extends HTMLElement {
                 },
               },
               { name: "mostra_sempre", selector: { boolean: {} } },
+              { name: "nascondi_cookie", selector: { boolean: {} } },
             ]
           : []),
       ],
@@ -109,6 +143,7 @@ class F1Card extends HTMLElement {
   setConfig(config) {
     this._config = {
       mostra_sempre: false,
+      nascondi_cookie: true,
       ...config,
       entity: config.entity || ENTITA,
       altezza: Number(config.altezza) || this.constructor.altezza,
@@ -133,6 +168,25 @@ class F1Card extends HTMLElement {
 
   getCardSize() {
     return this._live ? Math.ceil(this._config.altezza / 50) : 3;
+  }
+
+  _esciSchermoIntero() {
+    if (this.matches(":fullscreen")) document.exitFullscreen();
+    this.classList.remove("pieno");
+  }
+
+  async _schermoIntero() {
+    if (this.matches(":fullscreen") || this.classList.contains("pieno")) {
+      return this._esciSchermoIntero();
+    }
+    try {
+      await this.requestFullscreen();
+    } catch {
+      // ponytail: senza Fullscreen API (iPhone, alcune webview) ripiego su position: fixed.
+      // Un antenato con transform o contain può ritagliarlo: in quel caso serve il top
+      // layer (attributo popover).
+      this.classList.add("pieno");
+    }
   }
 
   _righe(stato, t, lingua) {
@@ -185,16 +239,22 @@ class F1Card extends HTMLElement {
       iframe.setAttribute("allow", "fullscreen");
       iframe.referrerPolicy = "no-referrer";
       iframe.title = "F1Dash";
-      iframe.style.height = `${this._config.altezza}px`;
       iframe.src = url;
+      const cornice = el("div", this._config.nascondi_cookie ? "cornice taglia" : "cornice");
+      cornice.style.setProperty("--altezza", `${this._config.altezza}px`);
+      cornice.append(iframe);
+      const schermo = el("button");
+      schermo.append(el("span", "entra", t.schermo_intero), el("span", "esci", t.esci));
+      schermo.addEventListener("click", () => this._schermoIntero());
       const link = el("a", "", t.nuova);
       link.href = url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       const piede = el("div", "piede");
-      piede.append(link);
-      card.append(iframe, piede);
+      piede.append(schermo, link);
+      card.append(cornice, piede);
     } else {
+      this._esciSchermoIntero();
       const corpo = el("div", "corpo");
       // textContent, mai innerHTML: i nomi arrivano da un'API esterna.
       for (const [classe, testo] of righe) corpo.append(el("div", classe, testo));
@@ -212,14 +272,18 @@ class F1Card extends HTMLElement {
   }
 }
 
+// All'avvio il frontend di HA sostituisce window.customElements con un registro nuovo
+// (polyfill dei registri "scoped"). Questo file viene caricato in parallelo all'app: le
+// card definite prima della sostituzione spariscono da customElements.get() e il selettore
+// risponde "Custom element not found". Quindi si definiscono solo ad app partita.
+const appPronta = customElements.whenDefined("home-assistant");
+
 function registra(tag, pagina, altezza, nome, descrizione) {
-  customElements.define(
-    tag,
-    class extends F1Card {
-      static pagina = pagina;
-      static altezza = altezza;
-    }
-  );
+  const classe = class extends F1Card {
+    static pagina = pagina;
+    static altezza = altezza;
+  };
+  appPronta.then(() => customElements.define(tag, classe));
   (window.customCards ||= []).push({
     type: tag,
     name: nome,

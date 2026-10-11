@@ -34,6 +34,15 @@ Opzioni delle card live, modificabili dall'editor visuale:
 - **Altezza**: altezza del riquadro in pixel. La pagina incorporata ha una propria intestazione
   sopra la mappa: se la mappa risulta tagliata, aumenta questo valore.
 - **Mostra sempre**: tiene la mappa o la dashboard visibile anche fuori sessione.
+- **Nascondi il banner dei cookie** (attivo): taglia via la fascia inferiore della pagina
+  incorporata, dove f1dash.net mostra la richiesta sui cookie. Il banner resta senza risposta,
+  non viene accettato al posto tuo. Insieme al banner sparisce tutto ciò che il sito ancora al
+  fondo della sua finestra, e gli ultimi 200-300 pixel della pagina non sono raggiungibili
+  scorrendo: se ti serve vederli, aumenta l'altezza o disattiva l'opzione.
+
+Sotto il riquadro, **Schermo intero** porta la card a tutto schermo; lo stesso pulsante riporta
+alla dashboard. Sui dispositivi che non consentono lo schermo intero vero (ad esempio iPhone)
+la card occupa comunque tutta la finestra.
 
 Se dopo l'installazione le card non compaiono nel selettore, svuota la cache del browser e
 ricarica la pagina.
