@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "F1 Live Map",
+        "description": "Adds the Formula 1 session calendar and the live map cards. No account needed."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Session window",
+        "data": {
+          "anticipo_minuti": "Minutes before the start",
+          "extra_minuti": "Extra minutes after the end"
+        },
+        "data_description": {
+          "anticipo_minuti": "How long before the start the session counts as live and the live cards switch on.",
+          "extra_minuti": "Margin after the expected duration, useful for delays and red flags."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "sessione_in_corso": {
+        "name": "Session in progress"
+      }
+    },
+    "sensor": {
+      "prossima_sessione": {
+        "name": "Next session"
+      }
+    }
+  }
+}

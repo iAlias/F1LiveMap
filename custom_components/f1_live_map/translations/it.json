@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "F1 Live Map",
+        "description": "Aggiunge il calendario delle sessioni di Formula 1 e le card con la mappa live. Non serve nessun account."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Finestra della sessione",
+        "data": {
+          "anticipo_minuti": "Minuti di anticipo",
+          "extra_minuti": "Minuti extra dopo la fine"
+        },
+        "data_description": {
+          "anticipo_minuti": "Quanto prima dell'inizio la sessione risulta in corso e le card live si attivano.",
+          "extra_minuti": "Margine dopo la durata prevista, utile per ritardi e bandiere rosse."
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "sessione_in_corso": {
+        "name": "Sessione in corso"
+      }
+    },
+    "sensor": {
+      "prossima_sessione": {
+        "name": "Prossima sessione"
+      }
+    }
+  }
+}
